@@ -81,8 +81,20 @@ export async function getLiveGame(
   );
   const myTeamId = searchedPlayer?.teamId ?? 100;
 
-  const allyTeam = playerSummaries.filter((p) => p.teamId === myTeamId);
-  const enemyTeam = playerSummaries.filter((p) => p.teamId !== myTeamId);
+  // 7. Sort each team by role: 탑 → 정글 → 미드 → 원딜 → 서폿 → 추정불가
+  const ROLE_ORDER: Record<string, number> = {
+    "탑": 0,
+    "정글": 1,
+    "미드": 2,
+    "원딜": 3,
+    "서폿": 4,
+    "추정불가": 5,
+  };
+  const byRole = (a: PlayerSummary, b: PlayerSummary) =>
+    (ROLE_ORDER[a.predictedRole] ?? 5) - (ROLE_ORDER[b.predictedRole] ?? 5);
+
+  const allyTeam = playerSummaries.filter((p) => p.teamId === myTeamId).sort(byRole);
+  const enemyTeam = playerSummaries.filter((p) => p.teamId !== myTeamId).sort(byRole);
 
   return {
     type: "live",

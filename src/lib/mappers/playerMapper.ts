@@ -16,14 +16,23 @@ const POSITION_KO: Record<string, PredictedRole> = {
   UTILITY: "서폿",
 };
 
+/** 강타(Smite) 소환사 스펠 ID */
+const SMITE_ID = 11;
+
 /**
- * Infer role from recent match history.
- * Uses the most frequent teamPosition across provided matches for this puuid.
+ * Infer role from summoner spells and recent match history.
+ * Smite (ID 11) → 정글 확정.
+ * Otherwise use most frequent teamPosition from recent matches.
  */
-function predictRoleFromMatches(
+function predictRole(
+  spell1Id: number,
+  spell2Id: number,
   puuid: string,
   matches: Match[]
 ): PredictedRole {
+  // 강타가 있으면 정글 확정
+  if (spell1Id === SMITE_ID || spell2Id === SMITE_ID) return "정글";
+
   const counts: Partial<Record<string, number>> = {};
   for (const match of matches) {
     const p = match.info.participants.find((p) => p.puuid === puuid);
@@ -84,7 +93,12 @@ export async function mapParticipant(
 
   const wins = recentMatchSummaries.filter((m) => m.win).length;
   const losses = recentMatchSummaries.length - wins;
-  const predictedRole = predictRoleFromMatches(participant.puuid, recentMatches);
+  const predictedRole = predictRole(
+    participant.spell1Id,
+    participant.spell2Id,
+    participant.puuid,
+    recentMatches
+  );
 
   return {
     puuid: participant.puuid,
