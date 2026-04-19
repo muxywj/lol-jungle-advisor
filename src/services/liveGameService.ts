@@ -24,6 +24,16 @@ export type LiveGameResult =
   | { type: "rate_limited" }
   | { type: "server_error"; message: string };
 
+// Module-level in-memory cache (Vercel 동일 인스턴스 재사용 시 Riot API 호출 완전 차단).
+// Edge Cache(CDN)가 1차 방어, 이 캐시가 2차 방어.
+// "live" 결과만 캐시 — not_in_game은 챔피언 선택 중일 수 있어 제외.
+const _cache = new Map<string, { result: LiveGameResult; expiresAt: number }>();
+const _CACHE_TTL = 120_000; // 2분
+
+function _cacheKey(gameName: string, tagLine: string, region: string) {
+  return `${gameName.toLowerCase()}#${tagLine.toLowerCase()}@${region}`;
+}
+
 // Application rate limit: 20 req/s, 100 req/2min.
 // Total calls = 33 + 10×MATCH_COUNT. At 6: 93/100 (safe margin 7).
 // Do NOT raise MATCH_COUNT above 6 without a server-side cache (7 → 103, exceeds limit).
@@ -411,6 +421,10 @@ export async function getLiveGame(
   tagLine: string,
   platformRegion: PlatformRegion
 ): Promise<LiveGameResult> {
+  const key = _cacheKey(gameName, tagLine, platformRegion);
+  const hit = _cache.get(key);
+  if (hit && Date.now() < hit.expiresAt) return hit.result;
+
   const routingRegion = PLATFORM_TO_ROUTING[platformRegion];
 
   // 1. Riot ID → puuid
@@ -549,7 +563,7 @@ export async function getLiveGame(
     v2Score = null;
   }
 
-  return {
+  const liveResult: LiveGameResult = {
     type: "live",
     data: {
       gameId: activeGame.gameId,
@@ -561,4 +575,7 @@ export async function getLiveGame(
       v2Score,
     },
   };
+
+  _cache.set(key, { result: liveResult, expiresAt: Date.now() + _CACHE_TTL });
+  return liveResult;
 }

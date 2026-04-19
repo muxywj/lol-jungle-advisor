@@ -21,12 +21,17 @@ export async function GET(req: NextRequest) {
 
   switch (result.type) {
     case "live":
-      return NextResponse.json({ type: "live", data: result.data });
+      // Vercel Edge Cache: 동일 소환사 재검색 시 120초간 Riot API 호출 없이 CDN 응답.
+      // 인게임 데이터는 2분 내 크게 변하지 않으므로 TTL 120s가 적절.
+      return NextResponse.json({ type: "live", data: result.data }, {
+        headers: { "Cache-Control": "public, s-maxage=120, stale-while-revalidate=60" },
+      });
 
     case "not_in_game":
+      // 챔피언 선택 중일 수 있으므로 짧게 캐시 (30초)
       return NextResponse.json(
         { error: "not_in_game", message: "현재 인게임 중이 아닙니다." },
-        { status: 404 }
+        { status: 404, headers: { "Cache-Control": "public, s-maxage=30" } }
       );
 
     case "account_not_found":
