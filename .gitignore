@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# AI/internal analysis files (not for public)
+CLAUDE.md
+AGENTS.md
+ask-codex.md
+ask-gemini.md
+council.md
+docs/
