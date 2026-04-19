@@ -1,0 +1,64 @@
+{
+  "_comment": "스펠 보정 규칙 참고 테이블. 실제 로직은 src/lib/scoring/finalLineScore.ts 에 구현됨.",
+  "spellIds": {
+    "IGNITE": 14,
+    "TELEPORT": 12,
+    "FLASH": 4,
+    "GHOST": 6,
+    "CLEANSE": 1,
+    "EXHAUST": 3,
+    "SMITE": 11,
+    "BARRIER": 21,
+    "HEAL": 7
+  },
+  "rules": [
+    {
+      "id": "ignite_mirror",
+      "description": "점화 미러전 — 양쪽 다 점화를 들었을 때 초반 킬각이 극대화됨",
+      "appliesTo": "all",
+      "condition": { "ally_has": 14, "enemy_has": 14 },
+      "adjustment": 6,
+      "keyword": "점화 미러전"
+    },
+    {
+      "id": "ally_ignite_top_mid",
+      "description": "탑/미드 아군이 점화 보유 — 킬 압박력 상승",
+      "appliesTo": ["탑", "미드"],
+      "condition": { "ally_has": 14 },
+      "adjustment": 4,
+      "keyword": "점화 보유"
+    },
+    {
+      "id": "no_teleport_top",
+      "description": "탑 텔포 없음 — 공격적 스펠 세팅으로 초반 킬의지 높음",
+      "appliesTo": ["탑"],
+      "condition": { "ally_missing": 12 },
+      "adjustment": 5,
+      "keyword": "텔포 포기"
+    },
+    {
+      "id": "enemy_cleanse",
+      "description": "적이 정화 보유 — 갱 CC 무력화 가능, 성공률 하락",
+      "appliesTo": "all",
+      "condition": { "enemy_has": 1 },
+      "adjustment": -5,
+      "keyword": "정화 경계"
+    },
+    {
+      "id": "enemy_ghost",
+      "description": "적이 유체화 보유 — 도주 능력 강화, 킬 확정 어려움",
+      "appliesTo": "all",
+      "condition": { "enemy_has": 6 },
+      "adjustment": -3,
+      "keyword": "유체화 경계"
+    },
+    {
+      "id": "ignite_sensitive_combo",
+      "description": "점화에 취약한 챔피언 + 아군 점화 — 시너지 극대화",
+      "appliesTo": "all",
+      "condition": { "ally_has": 14, "enemy_tag": "igniteSensitive" },
+      "adjustment": 6,
+      "keyword": "점화 시너지"
+    }
+  ]
+}

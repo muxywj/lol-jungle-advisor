@@ -1,0 +1,43 @@
+{
+  "_comment": "예외 규칙 보정 테이블. 실제 조건 평가는 src/lib/scoring/finalLineScore.ts 에서 수행.",
+  "_removed": [
+    "high_gank_setup  — gankSetup이 matchupScore에서 ×2 가중치로 이미 반영됨 (이중 반영 제거)",
+    "low_gank_setup   — 동일 이유",
+    "high_cc          — ccLevel이 matchupScore에서 ×1.5로 이미 반영됨",
+    "dive_potential   — divePotential이 matchupScore에서 이미 반영됨"
+  ],
+  "rules": [
+    {
+      "id": "safe_when_behind_enemy",
+      "description": "적이 밀려도 잘 버팀 — 갱 리턴 낮음",
+      "appliesTo": "all",
+      "condition": { "enemy_tag": "safeWhenBehind" },
+      "adjustment": -8,
+      "keyword": "회복력 높은 적"
+    },
+    {
+      "id": "hard_to_recover_enemy",
+      "description": "적이 한번 밀리면 복구 어려움 — 스노우볼 가치 상승",
+      "appliesTo": "all",
+      "condition": { "enemy_tag": "hardToRecoverWhenBehind" },
+      "adjustment": 7,
+      "keyword": "스노우볼 취약 적"
+    },
+    {
+      "id": "valuable_when_fed_ally",
+      "description": "아군이 먹었을 때 가치가 극대화됨 — 육성 가치 상승",
+      "appliesTo": "all",
+      "condition": { "ally_tag": "valuableWhenFed" },
+      "adjustment": 6,
+      "keyword": "육성 가치 높음"
+    },
+    {
+      "id": "roaming_mid",
+      "description": "로밍 가능한 미드 챔피언 — 협력 가치 상승",
+      "appliesTo": ["mid"],
+      "condition": { "ally_roaming_gte": 4 },
+      "adjustment": 6,
+      "keyword": "로밍 가능"
+    }
+  ]
+}
