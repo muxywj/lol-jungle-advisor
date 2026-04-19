@@ -39,6 +39,9 @@ export interface ChampionTag {
 // ──────────────────────────────────────────────
 // V2 Score types
 // ──────────────────────────────────────────────
+/** 정규화 전 rawScore 기반 절대 판단 — 라인 간 상대 순위와 독립적 */
+export type LaneUrgency = "매우유리" | "유리" | "보통" | "불리";
+
 export interface LaneScoreBreakdown {
   matchupScore: number;
   allyMasteryScore: number;
@@ -47,6 +50,7 @@ export interface LaneScoreBreakdown {
   spellAdjustment: number;
   exceptionAdjustment: number;
   finalScore: number;
+  urgency: LaneUrgency;
   keywords: string[];
   allyChampionId: number | null;
   enemyChampionId: number | null;

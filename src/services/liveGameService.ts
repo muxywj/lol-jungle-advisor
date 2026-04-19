@@ -347,6 +347,7 @@ function neutralLane(_lane: LaneKey): LaneScoreBreakdown {
     spellAdjustment: 0,
     exceptionAdjustment: 0,
     finalScore: 50,
+    urgency: "보통",
     keywords: ["라인 미식별"],
     allyChampionId: null,
     enemyChampionId: null,

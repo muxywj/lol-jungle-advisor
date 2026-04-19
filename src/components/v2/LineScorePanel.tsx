@@ -182,12 +182,24 @@ function LaneCard({
           <span>{LANE_ICON[laneKey]}</span>
           {LANE_LABEL[laneKey]}
         </span>
-        <span className={`text-xl font-bold tabular-nums ${scoreColor}`}>
-          {isNeutral ? "—" : breakdown.finalScore}
+        <div className="flex items-center gap-1.5">
           {!isNeutral && (
-            <span className="ml-0.5 text-xs font-normal text-slate-500">점</span>
+            <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${
+              breakdown.urgency === "매우유리" ? "bg-emerald-900/70 text-emerald-300" :
+              breakdown.urgency === "유리"     ? "bg-sky-900/70 text-sky-300" :
+              breakdown.urgency === "보통"     ? "bg-slate-700 text-slate-400" :
+                                                 "bg-rose-900/70 text-rose-300"
+            }`}>
+              {breakdown.urgency}
+            </span>
           )}
-        </span>
+          <span className={`text-xl font-bold tabular-nums ${scoreColor}`}>
+            {isNeutral ? "—" : breakdown.finalScore}
+            {!isNeutral && (
+              <span className="ml-0.5 text-xs font-normal text-slate-500">점</span>
+            )}
+          </span>
+        </div>
       </div>
 
       {/* Score bar */}
@@ -230,7 +242,7 @@ function LaneCard({
           {/* Keywords */}
           {breakdown.keywords.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
-              {breakdown.keywords.slice(0, 4).map((kw) => {
+              {breakdown.keywords.slice(0, 5).map((kw) => {
                 const isNonAdc = [...NON_ADC_KEYWORDS].some((k) => kw.startsWith(k.slice(0, 4)));
                 const isDestroy = kw.includes("봇 파괴");
                 const isSpecial = kw.includes("단식");

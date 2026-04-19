@@ -177,7 +177,7 @@ export function calcLaneScore(
   lane: LaneKey,
   input: LaneScoreInput
 ): LaneScoreBreakdown {
-  const matchupScore = calcMatchupScore(input.allyTag, input.enemyTag, lane);
+  const { score: matchupScore, keywords: matchupKeywords } = calcMatchupScore(input.allyTag, input.enemyTag, lane);
 
   const allyMasteryResult = calcMasteryScore(
     input.allyMastery,
@@ -252,7 +252,14 @@ export function calcLaneScore(
   else if (skillGapAdjustment <= -10) skillKeywords.push("실력 열세");
 
   // clamp 없음 — assembleV2Result에서 4개 라인을 동시에 정규화한 뒤 일괄 clamp
-  const finalScore = Math.round(base + skillGapAdjustment + spell.total + exception.total);
+  const rawFinalScore = Math.round(base + skillGapAdjustment + spell.total + exception.total);
+
+  // urgency: 정규화 전 rawScore 기준 절대 판단 (라인 간 상대 순위와 독립)
+  const urgency =
+    rawFinalScore >= 100 ? "매우유리" as const :
+    rawFinalScore >= 75  ? "유리"    as const :
+    rawFinalScore >= 50  ? "보통"    as const :
+                           "불리"   as const;
 
   return {
     matchupScore: Math.round(matchupScore),
@@ -261,8 +268,10 @@ export function calcLaneScore(
     skillGapAdjustment,
     spellAdjustment: spell.total,
     exceptionAdjustment: exception.total,
-    finalScore,
+    finalScore: rawFinalScore,
+    urgency,
     keywords: [
+      ...matchupKeywords,
       ...skillKeywords,
       ...spell.keywords,
       ...exception.keywords,
@@ -317,6 +326,7 @@ export function assembleV2Result(
     normalized[lane] = {
       ...raw[lane],
       finalScore: Math.max(0, Math.round(raw[lane].finalScore * scale)),
+      // urgency는 정규화 전 rawScore 기준으로 이미 확정 — 스케일링 후에도 유지
     };
   }
 

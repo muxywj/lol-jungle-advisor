@@ -25,9 +25,9 @@ export function calcMatchupScore(
   ally: ChampionTag | undefined,
   enemy: ChampionTag | undefined,
   laneKey?: string   // 통계 조회용 (옵션 — 없으면 태그 기반만 사용)
-): number {
+): { score: number; keywords: string[] } {
   // Both unknown → neutral
-  if (!ally && !enemy) return 50;
+  if (!ally && !enemy) return { score: 50, keywords: [] };
 
   // ── Ally receptiveness (1–5 scale) ───────────────────────────
   let allyValue: number;
@@ -83,10 +83,8 @@ export function calcMatchupScore(
     if (position) {
       const matchupStat = getMatchupWinRate(ally.championId, position, enemy.championId);
       if (matchupStat) {
-        // 매치업 데이터가 있으면 우선 사용 (최대 ±15pt)
         statsAdjustment = Math.round((matchupStat.winRate - 0.5) * 30);
       } else {
-        // 매치업 데이터 없으면 포지션 승률로 보조 보정 (최대 ±10pt)
         const positionStat = getPositionWinRate(ally.championId, position);
         if (positionStat) {
           statsAdjustment = Math.round((positionStat.winRate - 0.5) * 20);
@@ -95,5 +93,24 @@ export function calcMatchupScore(
     }
   }
 
-  return Math.max(0, Math.min(100, tagScore + statsAdjustment));
+  const score = Math.max(0, Math.min(100, tagScore + statsAdjustment));
+
+  // ── 키워드 추출 (점수 근거 자연어화) ──────────────────────────
+  const keywords: string[] = [];
+  if (ally) {
+    if (ally.ccLevel >= 4)        keywords.push("강력한 CC");
+    if (ally.gankSetup >= 4)      keywords.push("높은 갱 호응");
+    if (ally.earlyPower >= 4)     keywords.push("초반 주도권");
+    if (ally.snowballValue >= 4)  keywords.push("킬 스노우볼 기대");
+    if (ally.burst >= 4)          keywords.push("즉발 폭딜");
+    if (ally.divePotential >= 4)  keywords.push("다이브 가능");
+  }
+  if (enemy) {
+    if (enemy.laneStability <= 2)         keywords.push("적 라인 불안정");
+    if (enemy.hardToRecoverWhenBehind)    keywords.push("적 회복 불가");
+    if (enemy.safeWhenBehind)             keywords.push("적 회복력 높음");
+    if (enemy.earlyPower >= 4)            keywords.push("적 초반 강세");
+  }
+
+  return { score, keywords };
 }
