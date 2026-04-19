@@ -24,8 +24,10 @@ export type LiveGameResult =
   | { type: "rate_limited" }
   | { type: "server_error"; message: string };
 
-// Dev API key: 20 req/s, 100 req/2min. 10 players × 5 matches = 60 total calls (safe).
-const MATCH_COUNT_PER_PLAYER = 5;
+// Application rate limit: 20 req/s, 100 req/2min.
+// Total calls = 33 + 10×MATCH_COUNT. At 6: 93/100 (safe margin 7).
+// Do NOT raise MATCH_COUNT above 6 without a server-side cache (7 → 103, exceeds limit).
+const MATCH_COUNT_PER_PLAYER = 6;
 
 // LaneKey → champion-tags mainPosition / Riot teamPosition 매핑
 const LANE_TO_MAIN_POSITION: Record<LaneKey, string> = {
@@ -445,20 +447,28 @@ export async function getLiveGame(
 
   if (!activeGame) return { type: "not_in_game" };
 
-  // 4. Fetch recent matches for all 10 participants in parallel (V2: 10 games)
-  const participantMatchesSettled = await Promise.allSettled(
-    activeGame.participants.map((p) =>
-      getRecentMatches(p.puuid, routingRegion, MATCH_COUNT_PER_PLAYER)
-    )
-  );
+  // 4. Launch matches + ranked + mastery all in parallel.
+  //    All three need only puuid/championId which are available from activeGame now.
+  //    Previous code ran ranked then mastery sequentially after matches (~+0.4s wasted).
+  const [participantMatchesSettled, rankedSettled, masterySettled] = await Promise.all([
+    Promise.allSettled(
+      activeGame.participants.map((p) =>
+        getRecentMatches(p.puuid, routingRegion, MATCH_COUNT_PER_PLAYER)
+      )
+    ),
+    Promise.allSettled(
+      activeGame.participants.map((p) =>
+        getRankedEntries(p.puuid, platformRegion)
+      )
+    ),
+    Promise.allSettled(
+      activeGame.participants.map((p) =>
+        getMasteryByChampion(p.puuid, p.championId, platformRegion)
+      )
+    ),
+  ]);
 
-  // 5. Map each participant to PlayerSummary + fetch ranked entries in parallel
-  const rankedSettled = await Promise.allSettled(
-    activeGame.participants.map((p) =>
-      getRankedEntries(p.puuid, platformRegion)
-    )
-  );
-
+  // 5. Map each participant to PlayerSummary (mastery already fetched above)
   const playerSummaries: PlayerSummary[] = await Promise.all(
     activeGame.participants.map(async (p, i) => {
       const matchResult = participantMatchesSettled[i];
@@ -522,14 +532,13 @@ export async function getLiveGame(
   const allyTeam  = [...allyUnsorted].sort(byLane);
   const enemyTeam = [...enemyUnsorted].sort(byLane);
 
-  // 9. Fetch mastery for all 10 players in parallel, store on PlayerSummary
-  const allPlayers = [...allyTeam, ...enemyTeam];
-  const masterySettled = await Promise.allSettled(
-    allPlayers.map((p) => getMasteryByChampion(p.puuid, p.championId, platformRegion))
-  );
-  for (let i = 0; i < allPlayers.length; i++) {
+  // 9. Apply pre-fetched mastery data to each player.
+  //    masterySettled was fetched in parallel with matches/ranked above (step 4).
+  //    Index alignment: masterySettled[i] corresponds to activeGame.participants[i],
+  //    which matches the order playerSummaries was built from.
+  for (let i = 0; i < playerSummaries.length; i++) {
     const r = masterySettled[i];
-    allPlayers[i].masteryData = r.status === "fulfilled" ? r.value : null;
+    playerSummaries[i].masteryData = r.status === "fulfilled" ? r.value : null;
   }
 
   // 10. V2 scoring pipeline (synchronous — mastery already on players)

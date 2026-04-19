@@ -29,11 +29,13 @@ export async function getMatch(
 }
 
 // ── Global concurrency limiter for individual match fetches ─────────────────
-// Dev API key: 20 req/s hard limit. With 10 players × 5 matches in parallel,
-// unthrottled bursts hit ~50 req/s and cause 429s across all callers.
-// Limit = 3 concurrent match fetches → peak ≈ 10 req/s, well under the cap.
+// Application rate limit: 20 req/s, 100 req/2min (personal key, same as dev key).
+// Total API calls per search: 33 + 10×MATCH_COUNT (matchIds + matches + ranked + mastery + etc.)
+// MATCH_COUNT=6 → 93 calls/search, safely within 100/2min.
+// MATCH_COUNT=7 → 103 calls/search, EXCEEDS limit — do not increase without caching layer.
+// Concurrency 4 at ~300ms/call → peak ≈ 13 req/s, under 20/s cap.
 let _activeMatchFetches = 0;
-const _MAX_MATCH_CONCURRENT = 3;
+const _MAX_MATCH_CONCURRENT = 4;
 const _matchQueue: Array<() => void> = [];
 
 async function throttledGetMatch(id: string, routingRegion: RoutingRegion): Promise<Match> {
