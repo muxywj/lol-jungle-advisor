@@ -1,14 +1,5 @@
 import type { RecentMatchSummary } from "@/types/match";
-
-// ── 시간 감쇠 가중치 (liveGameService와 동일한 step-function) ─────────────
-function timeDecayWeight(playedAt: number): number {
-  const ageDays = (Date.now() - playedAt) / 86_400_000;
-  if (ageDays < 0.5)  return 1.00;
-  if (ageDays < 2)    return 0.70;
-  if (ageDays < 7)    return 0.45;
-  if (ageDays < 30)   return 0.20;
-  return 0.08;
-}
+import { timeDecayWeight } from "@/lib/utils/timeDecay";
 
 /**
  * 포지션 분포 엔트로피 기반 안정성 지수 (0~1).

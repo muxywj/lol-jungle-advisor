@@ -15,6 +15,7 @@ import { calcLaneScore, assembleV2Result, LaneScoreInput } from "@/lib/scoring/f
 import { getRankedEntries } from "@/lib/riot/league";
 import { RiotApiError } from "@/lib/riot/client";
 import { findBotDuo } from "@/lib/analysis/botDuoMatcher";
+import { timeDecayWeight } from "@/lib/utils/timeDecay";
 
 export type LiveGameResult =
   | { type: "live"; data: LiveGameViewModel }
@@ -49,18 +50,6 @@ const LOW_CONFIDENCE_THRESHOLD = 1.5;
 const DUO_CONFIDENCE_THRESHOLD = 0.35;
 
 
-/**
- * 경기 시각 기준 시간 감쇠 가중치.
- * 최근 게임일수록 높은 가중치 → 라인 변경 유저의 과거 전적 오염 방지.
- */
-function timeDecayWeight(playedAt: number): number {
-  const ageDays = (Date.now() - playedAt) / 86_400_000;
-  if (ageDays < 0.5)  return 1.00;
-  if (ageDays < 2)    return 0.70;
-  if (ageDays < 7)    return 0.45;
-  if (ageDays < 30)   return 0.20;
-  return 0.08;
-}
 
 /**
  * 전적 기반 포지션 가중 빈도 (0~1).
